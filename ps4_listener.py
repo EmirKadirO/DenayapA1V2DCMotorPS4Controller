@@ -62,9 +62,26 @@ def main():
             pygame.event.pump()
             
             current_cmd = "/dur"
+            is_analog_active = False
 
-            # 1. YONTEM: Hat (D-Pad) Kontrolu / METHOD 1: Hat (D-Pad) Control
-            if num_hats > 0:
+            # 1. YONTEM: Analog (Joystick) Kontrolu / METHOD 1: Analog (Joystick) Control
+            if joystick.get_numaxes() >= 2:
+                # Eksen 0: Sol-Sag (Left-Right), Eksen 1: Ileri-Geri (Forward-Backward)
+                # Y ekseni genelde asagi dogru pozitiftir, bu yuzden ters ceviriyoruz
+                # The Y-axis is usually positive downwards, so we invert it
+                x_axis = joystick.get_axis(0)
+                y_axis = -joystick.get_axis(1)
+
+                # Deadzone (0.1) ekleyerek ufak titremeleri yoksayiyoruz
+                if abs(x_axis) > 0.1 or abs(y_axis) > 0.1:
+                    is_analog_active = True
+                    # -1 ile 1 arasindaki degeri -100 ile 100 arasina olcekliyoruz
+                    joy_x = int(x_axis * 100)
+                    joy_y = int(y_axis * 100)
+                    current_cmd = f"/joy?x={joy_x}&y={joy_y}"
+
+            # 2. YONTEM: Hat (D-Pad) Kontrolu / METHOD 2: Hat (D-Pad) Control
+            if not is_analog_active and num_hats > 0:
                 try:
                     hat = joystick.get_hat(0)
                     if hat == (0, 1):    current_cmd = "/ileri"
@@ -78,9 +95,9 @@ def main():
                 except pygame.error:
                     pass # Hat gecersizse butona gec / Fallback to buttons if hat fails
             
-            # 2. YONTEM: Buton Kontrolu / METHOD 2: Button Control
+            # 3. YONTEM: Buton Kontrolu / METHOD 3: Button Control
             # D-Pad bazen buton olarak tanimlanabilir / D-Pad might be mapped as buttons
-            if current_cmd == "/dur":
+            if not is_analog_active and current_cmd == "/dur":
                 if num_buttons > 14:
                     if joystick.get_button(11):   current_cmd = "/ileri"
                     elif joystick.get_button(12): current_cmd = "/geri"
